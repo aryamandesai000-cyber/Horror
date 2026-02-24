@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Horror Survival Fixed</title>
+<title>Horror Survival – iOS Fixed</title>
 <style>
 body{
 margin:0;
@@ -12,6 +12,10 @@ text-align:center;
 overflow:hidden;
 }
 
+h1{
+margin-top:30px;
+}
+
 .movie{
 padding:15px;
 margin:15px auto;
@@ -19,6 +23,25 @@ width:60%;
 background:#111;
 border:2px solid red;
 cursor:pointer;
+transition:0.3s;
+}
+
+.movie:hover{
+background:red;
+}
+
+#fearBar{
+width:80%;
+height:20px;
+border:1px solid red;
+margin:20px auto;
+}
+
+#fearFill{
+height:100%;
+width:0%;
+background:red;
+transition:0.5s;
 }
 
 #jumpscare{
@@ -27,28 +50,15 @@ top:0;
 left:0;
 width:100%;
 height:100%;
+background:black;
 display:none;
 z-index:9999;
-background:black;
 }
 
 #jumpscare img{
 width:100%;
 height:100%;
 object-fit:cover;
-}
-
-#fearFill{
-height:20px;
-width:0%;
-background:red;
-transition:0.5s;
-}
-
-#fearBar{
-width:80%;
-margin:20px auto;
-border:1px solid red;
 }
 </style>
 </head>
@@ -70,30 +80,47 @@ border:1px solid red;
 <div class="movie" onclick="watchMovie(10)">10</div>
 
 <div id="jumpscare">
-<img id="scareImg" src="https://i.imgur.com/8QZ7Z0B.jpg">
+<img src="https://i.imgur.com/8QZ7Z0B.jpg">
 </div>
-
-<audio id="scream">
-<source src="https://actions.google.com/sounds/v1/human_voices/female_scream.ogg" type="audio/ogg">
-</audio>
 
 <script>
 
 let current = 0;
-let audioUnlocked = false;
+let audioContext;
 
-function unlockAudio(){
-if(!audioUnlocked){
-let sound = document.getElementById("scream");
-sound.play().then(()=>{
-sound.pause();
-sound.currentTime = 0;
-audioUnlocked = true;
-}).catch(()=>{});
+// Create audio context only after first user interaction
+function initAudio(){
+if(!audioContext){
+audioContext = new (window.AudioContext || window.webkitAudioContext)();
 }
 }
+document.body.addEventListener("click", initAudio, { once: true });
 
-document.body.addEventListener("click", unlockAudio);
+function playScream(){
+
+if(!audioContext) return;
+
+let duration = 1.2;
+let bufferSize = audioContext.sampleRate * duration;
+let buffer = audioContext.createBuffer(1, bufferSize, audioContext.sampleRate);
+let data = buffer.getChannelData(0);
+
+// Create harsh noise
+for (let i = 0; i < bufferSize; i++) {
+data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / bufferSize, 2);
+}
+
+let noise = audioContext.createBufferSource();
+noise.buffer = buffer;
+
+let gain = audioContext.createGain();
+gain.gain.value = 1.2;
+
+noise.connect(gain);
+gain.connect(audioContext.destination);
+
+noise.start();
+}
 
 function watchMovie(level){
 
@@ -105,22 +132,19 @@ return;
 current++;
 
 triggerJumpScare();
-
 document.getElementById("fearFill").style.width = (current*10) + "%";
 }
 
 function triggerJumpScare(){
 
 let scare = document.getElementById("jumpscare");
-let sound = document.getElementById("scream");
 
 scare.style.display = "block";
 
-sound.currentTime = 0;
-sound.play().catch(()=>{});
+playScream();
 
 if(navigator.vibrate){
-navigator.vibrate([300,100,300]);
+navigator.vibrate([400,150,400]);
 }
 
 setTimeout(()=>{
